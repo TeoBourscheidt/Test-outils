@@ -104,7 +104,7 @@ def affichage_first_index():
         title=f"{name_single_index} Historical Performance",
         xaxis_title="Date",
         yaxis_title="Close Price",
-        template="plotly_white",
+        template="plotly_white",    
         hovermode="x unified"
     )
     st.plotly_chart(fig_price, use_container_width=True) 
