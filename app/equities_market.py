@@ -240,7 +240,9 @@ def affichage_comp_index():
         hovermode="x unified"
     )
     st.plotly_chart(fig, use_container_width=True)
-
+    cols=st.columns(len(tickers))
+    for col,t, name in zip(cols,tickers, name_multi_index):
+        col.metric(name, f"{annual_return(data_multi[t]):.2f}%", "Ann. Return")
     # 4. Detailed Metrics Section
     st.divider()
     st.subheader("Comparative Risk Metrics")
@@ -251,7 +253,7 @@ def affichage_comp_index():
         options=["Volatility", "Max Drawdown", "Risk-Adjusted Ratios"])
 
     if choice=="Volatility":
-        window = st.slider("Rolling Window (Days)", 20, 60, 30)
+        window = st.slider("Rolling Window (Days)", 5, 60, 30)
         fig_vol = go.Figure()
         
         m_cols = st.columns(len(tickers))
@@ -293,6 +295,218 @@ def comp_equities_vs_index():
     
     start_date = c1.date_input("Analysis Start Date", 
                                value=today - pd.DateOffset(years=1), 
+                               max_value=today, key="start_date_idx")
+    end_date = c2.date_input("Analysis End Date", 
+                             value=today, 
+                             min_value=start_date, 
+                             max_value=today, key="end_date_idx")
+    
+    index_choose = st.selectbox(
+        label="Select Benchmark Index",
+        options=["NASDAQ Composite", "Dow Jones Industrial", "S&P 500","CAC 40","DAX 40","FTSE 100","Euro Stoxx 50"],
+        key="index_selection_box"
+    )
+
+    if st.button("Analyze Constituents", key="btn_analyze"):
+        with st.spinner("Fetching and processing index data..."):
+            list_equities = get_index(index_choose)
+            list_equities = [t.replace('.', '-') for t in list_equities]
+            st.session_state['data_bw'] = best_worst_equities_index(list_equities, start_date, end_date)
+            st.session_state['list_len'] = len(list_equities)
+
+    if 'data_bw' in st.session_state:
+        data_bw = st.session_state['data_bw']
+        if "error" in data_bw:
+            st.error(data_bw["error"])
+            return
+            
+        st.info(f"Total assets analyzed in index: {st.session_state['list_len']}")
+
+        # --- ÉTAPE 1 : PRÉPARATION SILENCIEUSE (Calculs sans affichage) ---
+        type_options = {
+            "Best return": "Top 5 Returns", "Worst return": "Bottom 5 Returns",
+            "Best vol": "Lowest Volatility", "Worst vol": "Highest Volatility",
+            "Best sharpe": "Top Sharpe Ratios", "Worst sharpe": "Bottom Sharpe Ratios",
+            "Best sortino": "Top Sortino Ratios", "Best calmar": "Top Calmar Ratios"
+        }
+        
+        # On définit le mapping et la sélection immédiatement pour éviter UnboundLocalError
+        mapping = {
+            "Best return": "best_5_return", "Worst return": "worst_5_return",
+            "Best vol": "best_5_vol", "Worst vol": "worst_5_vol",
+            "Best sharpe": "best_5_sharpe", "Worst sharpe": "worst_5_sharpe",
+            "Best sortino": "best_5_sortino", "Best calmar": "best_5_calmar"
+        }
+
+        # --- ÉTAPE 2 : AFFICHAGE MACRO (A & B) ---
+        if "all_results" in data_bw:
+            all_data = pd.DataFrame(data_bw["all_results"])
+            avg_ret = all_data['return'].mean() # Calculé ici pour être utilisé plus bas
+            
+            st.write("---")
+            st.subheader(f"Statistic : {index_choose}")
+
+            # A. Market Breadth
+            st.text("Market breadth")
+            col_b1, col_b2 = st.columns([1, 2])
+            ups = len(all_data[all_data['return'] > 0])
+            downs = len(all_data[all_data['return'] <= 0])
+            total = len(all_data)
+            breadth_pct = (ups / total) * 100 if total > 0 else 0
+
+            with col_b1:
+                st.metric("Advancing Issues", f"{ups}", f"{breadth_pct:.1f}%")
+                st.metric("Declining Issues", f"{downs}", f"{(downs/total)*100 if total > 0 else 0:.1f}%", delta_color="inverse")
+
+            with col_b2:
+                fig_pie = px.pie(names=['Positive Returns', 'Negative Returns'], values=[ups, downs],
+                                 color_discrete_map={'Positive Returns': "#35A061B9", 'Negative Returns': '#e74c3c'},
+                                 hole=0.5, height=250)
+                st.plotly_chart(fig_pie, use_container_width=True)
+
+            # B. Distribution
+            st.text("Return Distribution")
+            fig_hist = px.histogram(all_data, x="return", nbins=25, color_discrete_sequence=['#2c3e50'])
+            fig_hist.add_vline(x=avg_ret, line_dash="dash", line_color="orange")
+            st.plotly_chart(fig_hist, use_container_width=True)
+
+        # --- ÉTAPE 3 : SÉLECTION DES TICKERS ET GRAPHIQUES ---
+        st.write("---")
+        type_label = st.selectbox("Rank by Metric:", options=list(type_options.keys()), 
+                                  format_func=lambda x: type_options[x], key="rank_metric_unique")
+
+        selection_key = mapping.get(type_label)
+        data_selected = data_bw.get(selection_key, [])
+
+        if data_selected:
+            list_ticker_equities = [elt["ticker"] for elt in data_selected]
+            data_equities = get_last_data(list_ticker_equities, start=start_date, end=end_date)
+
+            bool_relative = st.checkbox(label="Normalize to Base 100", value=True, key="norm_base_100")
+            fig = go.Figure()
+            for ticker in list_ticker_equities:
+                if ticker in data_equities and not data_equities[ticker].empty:
+                    close_prices = data_equities[ticker]["Close"]
+                    y_val = (close_prices / close_prices.iloc[0] * 100) if bool_relative else close_prices
+                    fig.add_trace(go.Scatter(x=close_prices.index, y=y_val, mode="lines", name=ticker))
+            st.plotly_chart(fig, use_container_width=True)
+
+            selected_avg = pd.DataFrame(data_selected)['return'].mean()
+            alpha = selected_avg - avg_ret
+            
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Selection Average", f"{selected_avg:.1f}%")
+            c2.metric("Index Average", f"{avg_ret:.1f}%")
+            c3.metric("Excess Return (Alpha)", f"{alpha:.2f}%", delta=f"{alpha:.2f}% pts")
+
+            # --- ÉTAPE 4 : STATISTIQUES DÉTAILLÉES ---
+            choice = st.selectbox(label="Statistics", key="stats_choice_unique",
+                                options=["Risk vs. Reward Profile","Detailed Statistics","Multi-Asset Correlation Matrix"])
+            
+            if choice=="Risk vs. Reward Profile":
+                st.write("### Risk vs. Reward Profile")
+                st.markdown("*Bubble size represents the **Sharpe Ratio** (Absolute value).*")
+
+                df_plot = pd.DataFrame(data_selected)
+                
+                # 1. On crée une colonne pour la taille (toujours positive)
+                # On ajoute un petit offset (+0.5) pour que les points ne disparaissent pas si Sharpe = 0
+                df_plot['abs_sharpe'] = df_plot['sharpe'].abs() + 0.5
+
+                fig_scatter = px.scatter(
+                    df_plot,
+                    x="vol",
+                    y="return",
+                    text="ticker",
+                    size="abs_sharpe",  # Utilisation de la valeur absolue pour la taille
+                    color="sharpe",      # La couleur garde le vrai signe (négatif = bleu/froid, positif = rouge/chaud)
+                    labels={
+                        "vol": "Annualized Volatility (%)",
+                        "return": "Annualized Return (%)",
+                        "sharpe": "Sharpe Ratio",
+                        "abs_sharpe": "Sharpe Magnitude"
+                    },
+                    color_continuous_scale='RdBu_r', 
+                    range_color=[-2, 2], # Centre l'échelle de couleur pour mieux voir les négatifs
+                    template="plotly_white"
+                )
+                
+                fig_scatter.update_traces(
+                    textposition='top center', 
+                    marker=dict(sizeref=0.05, sizemode='area') # sizeref ajuste la taille globale des bulles
+                )
+                
+                # Lignes de repère pour le quadrant "Idéal" (Top-Left)
+                fig_scatter.add_hline(y=0, line_dash="dash", line_color="black", opacity=0.3)
+                
+                st.plotly_chart(fig_scatter, use_container_width=True)
+                # 4. Metrics Display
+
+            if choice=="Detailed Statistics":
+                st.write("### Detailed Statistics")
+                cols = st.columns(len(data_selected))
+                for col, elt in zip(cols, data_selected):
+                    with col:
+                        st.markdown(f"**{elt['ticker']}**")
+                        st.metric("Annual Return", f"{elt['return']:.1f}%")
+                        st.metric("Volatility", f"{elt['vol']:.2f}%")
+                        
+                        # Check if m_dd is a dict or a float to prevent crashes
+                        mdd_val = elt["m_dd"]["mdd"] if isinstance(elt["m_dd"], dict) else elt["m_dd"]
+                        st.metric("Max Drawdown", f"{mdd_val:.2f}%")
+                        
+                        st.metric("Sharpe", f"{elt['sharpe']:.2f}")
+                        st.metric("Sortino", f"{elt['sortino']:.2f}")
+
+            if choice=="Multi-Asset Correlation Matrix":
+                st.write("### Multi-Asset Correlation Matrix")
+                st.markdown("""
+                    *This matrix shows how the selected assets move relative to each other. 
+                    A value of **1.0** means perfect correlation, while **0** means no relationship.*
+                """)
+                
+                if not data_equities:
+                    st.warning("No data available for correlation analysis.")
+                    return
+
+                # Extraction des colonnes 'Close' et calcul des rendements
+                df_returns = pd.DataFrame()
+                for ticker in list_ticker_equities:
+                    if ticker in data_equities:
+                        df_returns[ticker] = get_returns(data_equities[ticker])
+                
+                if df_returns.empty:
+                    st.error("Insufficient data to calculate correlations.")
+                    return
+
+                corr_matrix = df_returns.corr()
+
+                # Création du Heatmap Plotly
+                fig_corr = px.imshow(
+                    corr_matrix,
+                    text_auto=".2f",
+                    aspect="auto",
+                    color_continuous_scale='RdBu_r', # Rouge pour corrélation positive, Bleu pour négative
+                    labels=dict(color="Correlation"),
+                    zmin=-1, zmax=1
+                )
+                
+                fig_corr.update_layout(
+                    template="plotly_white",
+                    margin=dict(l=20, r=20, t=40, b=20)
+                )
+                
+                st.plotly_chart(fig_corr, use_container_width=True)
+
+
+def comp_equities_vs_index2():
+    st.title("Index Constituents Analysis")
+    
+    today = datetime.today()
+    c1, c2 = st.columns(2)
+    
+    start_date = c1.date_input("Analysis Start Date", 
+                               value=today - pd.DateOffset(years=1), 
                                max_value=today)
     end_date = c2.date_input("Analysis End Date", 
                              value=today, 
@@ -315,6 +529,7 @@ def comp_equities_vs_index():
             st.session_state['list_len'] = len(list_equities)
 
     # 2. Check if data exists in state
+    # 2. Check if data exists in state
     if 'data_bw' in st.session_state:
         data_bw = st.session_state['data_bw']
         
@@ -323,6 +538,76 @@ def comp_equities_vs_index():
             return
             
         st.info(f"Total assets analyzed in index: {st.session_state['list_len']}")
+
+        # --- STEP 1: DEFINE SELECTION FIRST (To avoid UnboundLocalError) ---
+        type_options = {
+            "Best return": "Top 5 Returns",
+            "Worst return": "Bottom 5 Returns",
+            "Best vol": "Lowest Volatility",
+            "Worst vol": "Highest Volatility",
+            "Best sharpe": "Top Sharpe Ratios",
+            "Worst sharpe": "Bottom Sharpe Ratios",
+            "Best sortino": "Top Sortino Ratios",
+            "Best calmar": "Top Calmar Ratios"
+        }
+        
+        type_label = st.selectbox("Rank by Metric:", options=list(type_options.keys()), 
+                                  format_func=lambda x: type_options[x])
+
+        mapping = {
+            "Best return": "best_5_return", "Worst return": "worst_5_return",
+            "Best vol": "best_5_vol", "Worst vol": "worst_5_vol",
+            "Best sharpe": "best_5_sharpe", "Worst sharpe": "worst_5_sharpe",
+            "Best sortino": "best_5_sortino", "Best calmar": "best_5_calmar"
+        }
+
+        selection_key = mapping.get(type_label)
+        data_selected = data_bw.get(selection_key, [])
+
+        # --- STEP 2: MACRO INDEX ANALYSIS (Now safe to run) ---
+        if "all_results" in data_bw:
+            all_data = pd.DataFrame(data_bw["all_results"])
+            
+            st.write("---")
+            st.header(f"📊 Market Insight: {index_choose}")
+
+            # A. MARKET BREADTH
+            st.subheader("A. Market Breadth")
+            col1, col2 = st.columns([1, 2])
+            ups = len(all_data[all_data['return'] > 0])
+            downs = len(all_data[all_data['return'] <= 0])
+            total = len(all_data)
+            breadth_pct = (ups / total) * 100 if total > 0 else 0
+
+            with col1:
+                st.metric("Advancing Issues", f"{ups}", f"{breadth_pct:.1f}% of Index")
+                st.metric("Declining Issues", f"{downs}", f"{(downs/total)*100 if total > 0 else 0:.1f}%", delta_color="inverse")
+                insight = "Healthy Participation" if breadth_pct > 55 else "Narrow Participation"
+                st.info(f"**Market Status:** {insight}")
+
+            with col2:
+                fig_pie = px.pie(
+                    names=['Positive Returns', 'Negative Returns'], 
+                    values=[ups, downs],
+                    color_discrete_map={'Positive Returns': '#27ae60', 'Negative Returns': '#e74c3c'},
+                    hole=0.5, height=300
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
+
+            # B. RETURN DISTRIBUTION
+            st.subheader("B. Return Distribution")
+            
+            fig_hist = px.histogram(
+                all_data, x="return", nbins=25,
+                title=f"Annualized Return Distribution ({index_choose})",
+                color_discrete_sequence=['#2c3e50']
+            )
+            avg_ret = all_data['return'].mean()
+            fig_hist.add_vline(x=avg_ret, line_dash="dash", line_color="orange", annotation_text=f"Mean: {avg_ret:.1f}%")
+            st.plotly_chart(fig_hist, use_container_width=True)
+            
+
+
         
         # Professional English labels for selection
         type_options = {
@@ -479,6 +764,17 @@ def comp_equities_vs_index():
             )
             
             st.plotly_chart(fig_corr, use_container_width=True)
+    # C. ALPHA ANALYSIS (data_selected is now defined!)
+        if data_selected:
+            st.subheader("C. Selection Alpha vs. Benchmark")
+            selected_avg = pd.DataFrame(data_selected)['return'].mean()
+            alpha = selected_avg - avg_ret
+            
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Selection Average", f"{selected_avg:.1f}%")
+            c2.metric("Index Average", f"{avg_ret:.1f}%")
+            c3.metric("Excess Return (Alpha)", f"{alpha:.2f}%", delta=f"{alpha:.2f}% pts")
+
 
 def affichage_compare_two_assets():
     st.title("Asset vs. Asset: Direct Comparison")

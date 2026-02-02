@@ -1,3 +1,28 @@
+metal_tickers = {
+    # --- PRÉCIEUX (Safe Havens) ---
+    "Gold": "GC=F",
+    "Silver": "SI=F",
+    "Platinum": "PL=F",
+    "Palladium": "PA=F",
+    
+    # --- INDUSTRIELS DE BASE (Base Metals) ---
+    "Copper": "HG=F",       # Le baromètre économique
+    "Aluminum": "ALI=F",
+    "Steel (HRC)": "HRC=F",    # "HRC" est plus liquide que "STW" sur Yahoo
+    "Iron Ore": "6210.HK",     # Proxy via Hong Kong ou utiliser "TIO=F" si l'historique revient
+    "Zinc": "ZN=F",            # Le ticker standard est souvent ZN=F (COMEX)
+    "Lead": "LL=F",            # Ticker pour le Lead au lieu de PB
+    "Tin": "JJT",              # ETF iPath Tin (car le ticker SN=F est souvent mort)
+                   # Étain
+    
+    # --- BATTERY & TECH METALS (Transition Énergétique) ---
+    # Note : Ces métaux sont souvent moins liquides en futures, 
+    # on utilise parfois des trackers ou des prix spots si disponibles.
+    "Nickel": "JJN" ,
+    "Lithium (Index)": "LITP", 
+    "Cobalt": "COB=F",
+    "Magnesium": "MAGN",    # Souvent via proxy d'entreprises minières
+}
 fx_tickers = {
 
     # 🌍 G10
@@ -124,6 +149,7 @@ link_index_ticker = {
     # 🇪🇺 Europe
     "Euro Stoxx 50": "^STOXX50E",
     "DAX 40 (Allemagne)": "^GDAXI",
+    "FTSE MIB (Italie)" : "FTSEMIB.MI",
     "CAC 40 (France)": "^FCHI",
     "FTSE 100 (Royaume-Uni)": "^FTSE",
     "SMI (Suisse)": "^SSMI",

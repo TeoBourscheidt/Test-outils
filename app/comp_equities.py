@@ -67,5 +67,7 @@ def best_worst_equities_index(list_ticker: list, start: str, end: str) -> dict:
         results[f"best_5_{m}"] = df.sort_values(m, ascending=asc_best).head(5).to_dict('records')
         results[f"worst_5_{m}"] = df.sort_values(m, ascending=asc_worst).head(5).to_dict('records')
 
+    results["all_results"] = df.to_dict('records') 
+    
     return results
 
