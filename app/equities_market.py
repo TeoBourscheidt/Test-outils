@@ -51,17 +51,18 @@ def affichage_first_index():
     st.title("Single Index Analysis")
     
     # 1. Date Selection
-    today = datetime.today()
+    today =datetime.today().date()
+    default_start = (datetime.today() - pd.DateOffset(years=1)).date()
     c1, c2 = st.columns(2)
     start_date = c1.date_input(
         label="Start Date",
-        value=today - pd.DateOffset(years=1),
+        value=default_start,
         max_value=today
     )
     end_date = c2.date_input(
         label="End Date",
         value=today,
-        min_value=start_date,
+        min_value=default_start,
         max_value=today
     )
     
