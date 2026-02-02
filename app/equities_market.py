@@ -107,22 +107,6 @@ def affichage_first_index():
         template="plotly_white",
         hovermode="x unified"
     )
-    # APRÈS avoir récupéré close_price
-    close_price = data_single_index[ticker_single_index]["Close"]
-
-    # 🔍 DEBUG CRITIQUE
-    st.write("### 🔍 Debug Info")
-    st.write(f"**Type:** {type(close_price)}")
-    st.write(f"**Shape:** {close_price.shape}")
-    st.write(f"**Index type:** {type(close_price.index)}")
-    st.write(f"**First 3 values:**")
-    st.dataframe(close_price.head(3))
-
-    # Vérification des valeurs
-    if close_price.isna().all():
-        st.error("❌ All values are NaN!")
-    if (close_price.index == close_price.values).all():
-        st.error("❌ Index equals values - this causes y=x line!")
     st.plotly_chart(fig_price, use_container_width=True) 
     
 
