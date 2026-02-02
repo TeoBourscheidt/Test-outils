@@ -108,6 +108,17 @@ def rolling_volatility(data:  pd.DataFrame,
     returns = get_returns(data)
     return returns.rolling(window).std() * np.sqrt(periods_per_year) * 100
 
+def cor(data1:pd.DataFrame,data2:pd.DataFrame)->float:
+    return1=get_returns(data1)
+    return2=get_returns(data2)
+    return return1.corr(return2) 
+
+def rolling_corr(data1:pd.DataFrame,data2:pd.DataFrame,
+                window:int=10)->pd.Series:
+    return1=get_returns(data1)
+    return2=get_returns(data2)
+    return return1.rolling(window).corr(return2)
+
 def var(data:pd.DataFrame,
         confidence_level: float = 0.95) -> float:
     """Calcule la Value at Risk (VaR) en %"""

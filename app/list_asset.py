@@ -6,23 +6,21 @@ metal_tickers = {
     "Palladium": "PA=F",
     
     # --- INDUSTRIELS DE BASE (Base Metals) ---
-    "Copper": "HG=F",       # Le baromètre économique
+    "Copper": "HG=F",        # Baromètre économique
     "Aluminum": "ALI=F",
-    "Steel (HRC)": "HRC=F",    # "HRC" est plus liquide que "STW" sur Yahoo
-    "Iron Ore": "6210.HK",     # Proxy via Hong Kong ou utiliser "TIO=F" si l'historique revient
-    "Zinc": "ZN=F",            # Le ticker standard est souvent ZN=F (COMEX)
-    "Lead": "LL=F",            # Ticker pour le Lead au lieu de PB
-    "Tin": "JJT",              # ETF iPath Tin (car le ticker SN=F est souvent mort)
-                   # Étain
+    "Steel (HRC)": "HRC=F",  # Plus liquide que STW
+    "Iron Ore": "TIO=F",     # Proxy future COMEX pour fer
+    "Zinc": "ZN=F",
+    "Lead": "LL=F",
+    "Tin": "SN=F",            # Ticker futures standard pour l’étain
     
     # --- BATTERY & TECH METALS (Transition Énergétique) ---
-    # Note : Ces métaux sont souvent moins liquides en futures, 
-    # on utilise parfois des trackers ou des prix spots si disponibles.
-    "Nickel": "JJN" ,
-    "Lithium (Index)": "LITP", 
+    "Nickel": "NI=F",
+    "Lithium": "LIT=F",       # Futures proxy ou tracker si disponible
     "Cobalt": "COB=F",
-    "Magnesium": "MAGN",    # Souvent via proxy d'entreprises minières
+    "Magnesium": "MAG=F",     # Proxy futures ou ETF si disponible
 }
+
 fx_tickers = {
 
     # 🌍 G10

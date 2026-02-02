@@ -500,7 +500,6 @@ def comp_equities_vs_index():
                 
                 st.plotly_chart(fig_corr, use_container_width=True)
 
-
 def comp_equities_vs_index2():
     st.title("Index Constituents Analysis")
     

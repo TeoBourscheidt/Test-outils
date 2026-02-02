@@ -10,7 +10,7 @@ import plotly.express as px
 
 from app.list_asset import commodities_dict,energy_tickers,fx_tickers,metal_tickers
 from app.data import get_last_data
-from app.metrics import rolling_volatility,volatility,get_returns
+from app.metrics import rolling_volatility,volatility,get_returns,rolling_corr,cor,max_drawdown
 
 def aff_general():
     return 0
@@ -436,132 +436,187 @@ def aff_energy2():
 
 def aff_metal():
     st.header("Metal Sector Analysis")
+    st.caption("Analyze metal prices, performance and key metrics")
     today = datetime.today()
     
-    # 1. Gestion des dates
-    c1, c2 = st.columns(2)
-    start_date = c1.date_input("Start Date", today - pd.DateOffset(years=1), max_value=today, key="metal_start")
-    end_date = c2.date_input("End Date", today, min_value=start_date, max_value=today, key="metal_end")
+    # 1. Date management
+    col1, col2 = st.columns(2)
+    start_date = col1.date_input("Start Date", today - pd.DateOffset(years=1), max_value=today, key="metal_start")
+    end_date = col2.date_input("End Date", today, min_value=start_date, max_value=today, key="metal_end")
 
-    # 2. Sélection du groupe de métaux
-    choice_type_metal = st.selectbox(
+    # 2. Metal group selection
+    metal_category = st.selectbox(
         label="Select Category",
         options=["Precious", "Industrial", "Battery & tech metals"],
         key="metal_type_selector"
     )
 
-    # Définition du dictionnaire d'options selon le type
-    if choice_type_metal == "Precious":
-        options_available = ["Gold", "Silver", "Platinum", "Palladium"]
-    elif choice_type_metal == "Industrial":
-        options_available = ["Copper", "Aluminum", "Steel (HRC)", "Iron Ore", "Zinc", "Lead", "Tin"]
+    # Define available options by type
+    if metal_category == "Precious":
+        available_options = ["Gold", "Silver", "Platinum", "Palladium"]
+    elif metal_category == "Industrial":
+        available_options = ["Copper", "Aluminum", "Steel (HRC)", "Iron Ore", "Zinc", "Lead", "Tin"]
     else:
-        options_available = ["Nickel", "Lithium (Index)", "Cobalt", "Magnesium"]
+        available_options = ["Nickel", "Lithium (Index)", "Cobalt", "Magnesium"]
     
-    # 3. NOUVEAU : Multiselect pour choisir précisément les assets
-    selected_assets = st.multiselect(
-        label=f"Choose {choice_type_metal} assets to analyze",
-        options=options_available,
-        default=options_available[:2], # Par défaut on en prend 2
+    # 3. Multiselect to choose specific assets
+    selected_metals = st.multiselect(
+        label=f"Choose {metal_category} assets to analyze",
+        options=available_options,
+        default=available_options,
         key="metal_assets_multiselect"
     )
     
-    # Dictionnaire inverse pour les labels
-    names_metal = {v: k for k, v in metal_tickers.items()}
+    # Reverse dictionary for labels
+    ticker_to_name = {v: k for k, v in metal_tickers.items()}
     
-    # Transformation en liste de tickers
-    ticker_list = [metal_tickers[x] for x in selected_assets if x in metal_tickers]
+    # Convert to ticker list
+    ticker_list = [metal_tickers[x] for x in selected_metals if x in metal_tickers]
     
     if ticker_list:
         data = get_last_data(ticker_list, start_date, end_date)
         valid_tickers = [t for t in ticker_list if t in data and not data[t].empty]
         
         if valid_tickers:
-            # --- 1. DASHBOARD DE PRIX (Metrics) ---
+            # --- 1. PRICE DASHBOARD (Metrics) ---
+    
             cols_per_row = 4
             for i in range(0, len(valid_tickers), cols_per_row):
                 current_batch = valid_tickers[i : i + cols_per_row]
                 cols = st.columns(len(current_batch))
-                for j, t in enumerate(current_batch):
-                    last_p = data[t]['Close'].iloc[-1]
-                    prev_p = data[t]['Close'].iloc[-2]
-                    change = ((last_p / prev_p) - 1) * 100
-                    cols[j].metric(names_metal[t], f"${last_p:.2f}", f"{change:.2f}%")
+                for j, ticker in enumerate(current_batch):
+                    last_price = data[ticker]['Close'].iloc[-1]
+                    prev_price = data[ticker]['Close'].iloc[-2]
+                    price_change = ((last_price / prev_price) - 1) * 100
+                    cols[j].metric(ticker_to_name[ticker], f"${last_price:.2f}", f"{price_change:.2f}%")
 
-            # --- 2. GRAPHIQUE DE PERFORMANCE ---
+            # --- 2. PERFORMANCE CHART ---
             st.subheader("Performance Chart")
-            choice_relative = st.checkbox("Normalize (Base 100)", value=True, key="metal_rel_perf")
+            st.caption("Compare price evolution over the selected period")
+            normalize_chart = st.checkbox("Normalize (Base 100)", value=True, key="metal_rel_perf")
             
             fig_perf = go.Figure()
-            for t in valid_tickers:
-                y_val = data[t]["Close"]
-                if choice_relative:
-                    y_val = (y_val / y_val.iloc[0]) * 100
-                fig_perf.add_trace(go.Scatter(x=y_val.index, y=y_val, name=names_metal[t]))
+            for ticker in valid_tickers:
+                y_values = data[ticker]["Close"]
+                if normalize_chart:
+                    y_values = (y_values / y_values.iloc[0]) * 100
+                fig_perf.add_trace(go.Scatter(x=y_values.index, y=y_values, name=ticker_to_name[ticker]))
             
             fig_perf.update_layout(template="plotly_white", hovermode="x unified")
             st.plotly_chart(fig_perf, use_container_width=True)
 
             # --- 3. MOMENTUM (Z-SCORE) ---
-            st.write("**Market Momentum (Z-Score 30D) :**")
+            st.text("Market Momentum (Z-Score 30D)")
+            st.caption("Z-Score > 1.5: Overbought | Z-Score < -1.5: Oversold | Between: Neutral")
             for i in range(0, len(valid_tickers), cols_per_row):
                 current_batch = valid_tickers[i : i + cols_per_row]
-                mom_cols = st.columns(len(current_batch))
-                for j, t in enumerate(current_batch):
-                    prices = data[t]['Close']
+                momentum_cols = st.columns(len(current_batch))
+                for j, ticker in enumerate(current_batch):
+                    prices = data[ticker]['Close']
                     if len(prices) > 30:
-                        sma = prices.rolling(window=30).mean().iloc[-1]
-                        std = prices.rolling(window=30).std().iloc[-1]
-                        z_score = (prices.iloc[-1] - sma) / std if std != 0 else 0
+                        moving_avg = prices.rolling(window=30).mean().iloc[-1]
+                        std_dev = prices.rolling(window=30).std().iloc[-1]
+                        z_score = (prices.iloc[-1] - moving_avg) / std_dev if std_dev != 0 else 0
                         
                         status = "Overbought" if z_score > 1.5 else "Oversold" if z_score < -1.5 else "Neutral"
-                        d_color = "inverse" if z_score > 1.5 else "normal" if z_score < -1.5 else "off"
+                        delta_color = "inverse" if z_score > 1.5 else "normal" if z_score < -1.5 else "off"
 
-                        mom_cols[j].metric(label=names_metal[t], value=round(z_score, 2), delta=status, delta_color=d_color)
-        else:
-            st.error("No data found for the selected assets.")
-    else:
-        st.info("Please select at least one asset to see the analysis.")
+                        momentum_cols[j].metric(label=ticker_to_name[ticker], value=round(z_score, 2), delta=status, delta_color=delta_color)
 
-    choice=st.selectbox(label="Analyze metrics",
-                            options=["Rolling volatility","Saisonnalité"])
-    if choice=="Rolling volatility":
-        st.subheader("Rolling Volatility")
-        fig_perf = go.Figure()
-        for ticker,name_ticker in zip(ticker_list,selected_assets):
-            rolling=rolling_volatility(data[ticker])
-            fig_perf.add_trace(go.Scatter(x=rolling.index, y=rolling, name=name_ticker))
-        fig_perf.update_layout(
-            template="plotly_white", 
-            yaxis_title="Volatility annual (%)",
-            xaxis_title="Days",
-        )
-        st.plotly_chart(fig_perf, use_container_width=True)
-        cols=st.columns(len(ticker_list))
-        for col,ticker,name_ticker in zip(cols,ticker_list,selected_assets):
-            col.text(name_ticker)
-            col.metric(label="Volatility (%)",value=round(volatility(data[ticker]),2))
-    if choice == "Saisonnalité":
-        st.subheader("Monthly Seasonality (Last 5 Years)")
-        # On prend une période plus longue pour la saisonnalité
-        long_data = get_last_data(ticker_list, today - pd.DateOffset(years=5), today)
-        
-        selected_ticker = st.selectbox("Select asset for seasonality", options=ticker_list, format_func=lambda x: names_metal[x])
-        
-        df_seas = long_data[selected_ticker].copy()
-        df_seas['Month'] = df_seas.index.month
-        # Calcul de la performance mensuelle moyenne
-        monthly_perf = df_seas.groupby('Month')['Close'].apply(lambda x: x.pct_change().mean() * 100)
-        
-        fig_seas = px.bar(
-            x=[datetime(2000, m, 1).strftime('%b') for m in monthly_perf.index],
-            y=monthly_perf.values,
-            title=f"Average Monthly Performance - {names_metal[selected_ticker]}",
-            labels={'x': 'Month', 'y': 'Average Return (%)'},
-            color=monthly_perf.values,
-            color_continuous_scale='RdYlGn'
-        )
-        st.plotly_chart(fig_seas, use_container_width=True)
+            if metal_category == "Industrial":
+                st.info("Advanced industrial analytics coming soon...")
+
+            if metal_category == "Precious":
+                st.divider()
+                st.subheader("Advanced Analytics")
+                metric_choice = st.selectbox(label="Choose your metrics", options=["Correlation", "Volatility", "Volume", "Max Drawdown"])
+    
+                if metric_choice == "Correlation":
+                    st.caption("Analyze the relationship between two precious metals")
+                    col1, col2 = st.columns(2)
+                    metal1 = col1.selectbox(label="Precious metal 1", options=selected_metals, index=0)
+                    metal2 = col2.selectbox(label="Precious metal 2", options=selected_metals, index=1)
+                    
+                    window_size = st.slider(label="Rolling window (days)", value=30, max_value=90, min_value=10)
+                    rolling_correlation = rolling_corr(data[metal_tickers[metal1]], data[metal_tickers[metal2]], window=window_size)
+                    
+                    fig_corr = go.Figure()
+                    fig_corr.add_trace(go.Scatter(x=rolling_correlation.index, y=rolling_correlation))
+                    fig_corr.update_layout(template="plotly_white", hovermode="x unified")
+                    st.plotly_chart(fig_corr, use_container_width=True)
+                    
+                    overall_corr = cor(data[metal_tickers[metal1]], data[metal_tickers[metal2]])
+                    st.metric(label="Overall correlation", value=round(overall_corr, 2))
+                
+                if metric_choice == "Volatility":
+                    st.caption("Measure price volatility over time")
+                    selected_metal = st.selectbox(label="Select metal", options=selected_metals, index=0)
+                    window_size = st.slider(label="Rolling window (days)", value=30, max_value=90, min_value=10)
+                    
+                    rolling_vol = rolling_volatility(data[metal_tickers[selected_metal]], window=window_size)
+                    
+                    fig_vol = go.Figure()
+                    fig_vol.add_trace(go.Scatter(x=rolling_vol.index, y=rolling_vol))
+                    fig_vol.update_layout(template="plotly_white", hovermode="x unified")
+                    st.plotly_chart(fig_vol, use_container_width=True)
+                    
+                    overall_vol = volatility(data[metal_tickers[selected_metal]])
+                    st.metric(label="Overall volatility", value=round(overall_vol, 2))
+                
+                if metric_choice == "Volume":
+                    st.caption("Compare trading volume across metals")
+                    selected_metals_vol = st.multiselect(
+                        label=f"Choose {metal_category} assets to analyze volume",
+                        options=selected_metals,
+                        default=selected_metals[:2],
+                        key="metal_assets_multiselect_volume"
+                    )
+                    
+                    fig_volume = go.Figure()
+                    for metal_name in selected_metals_vol:
+                        metal_data = data[metal_tickers[metal_name]]
+                        fig_volume.add_trace(go.Scatter(x=metal_data.index, y=metal_data["Volume"], name=metal_name))
+                    
+                    fig_volume.update_layout(template="plotly_white", hovermode="x unified")
+                    st.plotly_chart(fig_volume, use_container_width=True)
+                    
+                    volume_cols = st.columns(len(selected_metals_vol))
+                    for metal_name, vol_col in zip(selected_metals_vol, volume_cols):
+                        volume_data = data[metal_tickers[metal_name]]["Volume"]
+                        vol_col.metric(label="Max Volume", value=f"{volume_data.max():,.0f}")
+                        vol_col.metric(label="Average Volume", value=f"{volume_data.mean():,.0f}")
+                
+                if metric_choice == "Max Drawdown":
+                    st.caption("Measure the largest peak-to-trough decline")
+                    selected_metals_mdd = st.multiselect(
+                        label=f"Choose {metal_category} assets to analyze drawdown",
+                        options=selected_metals,
+                        default=selected_metals[:2],
+                        key="metal_assets_multiselect_mdd"
+                    )
+                    
+                    mdd_cols = st.columns(len(selected_metals_mdd))
+                    for mdd_col, metal_name in zip(mdd_cols, selected_metals_mdd):
+                        with mdd_col:
+                            mdd_result = max_drawdown(data[metal_tickers[metal_name]])
+                            st.markdown(f"**{metal_name}**")
+                            st.metric("Max Drawdown", f"{mdd_result['mdd']:.2f}%")
+                            st.text(f"Peak: \n {mdd_result['peak'].strftime('%Y-%m-%d')}")
+                            st.text(f"Trough: \n {mdd_result['trough'].strftime('%Y-%m-%d')}")
+                            st.metric("Recovery Days", int(mdd_result['duration_days']))
+
+
+
+
+
+
+
+
+
+
+
+
+
     
         
 def aff_agri():
@@ -572,13 +627,11 @@ def aff_live():
 
 
 def affichage_commo():
-    general_aff,energy,energy2,metal,agri,livestock=st.tabs(["General","Energy","Energy Test Evolution","Metals","Agriculture","Livestock"])
+    general_aff,energy,metal,agri,livestock=st.tabs(["General","Energy","Metals","Agriculture","Livestock"])
     with general_aff:
         aff_general()
     with energy:
         aff_energy()
-    with energy2:
-        aff_energy2()
     with metal:
         aff_metal()
     with agri:

@@ -10,11 +10,11 @@ from app.concept import initialize_concepts_session_state,display_concepts_quiz
 
 page= st.sidebar.selectbox(
     label="Choose page",
-    options=["Equities market","Commodities market","Quizz metrics","Quizz concept"])
+    options=["Equities market","Commodities market ( en dev )","Quizz metrics","Quizz concept"])
 
 if page=="Equities market":
     affichage_stock_index_market()
-if page=="Commodities market":
+if page=="Commodities market ( en dev )":
     affichage_commo()
 if page=="Quizz metrics":
     initialize_session_state()
