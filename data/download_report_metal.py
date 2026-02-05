@@ -306,3 +306,5 @@ colonnes_importantes_cme = [
         'Prod_Merc_Positions_Spread_All',
         'M_Money_Positions_Spread_All',
     ]
+
+# %%
