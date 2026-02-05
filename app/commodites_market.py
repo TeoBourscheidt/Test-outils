@@ -15,7 +15,324 @@ from data.data import get_last_data
 from app.metrics_general import rolling_volatility,volatility,get_returns,rolling_corr,cor,max_drawdown
 
 def aff_general():
-    return 0
+    st.header("Commodities Market Overview")
+    st.caption("Global performance across Energy, Metals, Agriculture and Livestock sectors")
+    
+    today = datetime.today()
+    
+    # === DATE SELECTOR ===
+    col1, col2 = st.columns(2)
+    start_date = col1.date_input(
+        label="Start Date",
+        value=today - pd.DateOffset(months=3),
+        max_value=today,
+        key="general_start"
+    )
+    end_date = col2.date_input(
+        label="End Date",
+        value=today,
+        min_value=start_date,
+        max_value=today,
+        key="general_end"
+    )
+    # === BUILD ASSET UNIVERSE ===
+    # Select key representatives from each category
+    
+    all_asset=metal_tickers |energy_tickers
+    
+    # Download data
+    ticker_list = list(all_asset.values())
+    data = get_last_data(ticker_list, start_date, end_date)
+    
+    if not data:
+        st.warning("No data available for the selected period.")
+        return
+    # Calculate returns for all assets
+    returns_data = {}
+    for asset_name,ticker in all_asset.items():
+        if ticker in data and not data[ticker].empty:
+            returns = get_returns(data[ticker])
+            if not returns.empty:
+                returns_data[asset_name] = returns
+    
+    # === 5. NORMALIZED PRICE COMPARISON ===
+    st.divider()
+    st.subheader("Multi-Asset Price Evolution (Base 100)")
+    st.caption("Compare relative performance of all commodities from the start date")
+    
+    selected_comparison = st.multiselect(
+        "Select assets to compare",
+        options=list(all_asset.keys()),
+        default=["Crude Oil WTI", "Gold", "Copper", "Natural Gas Henry Hub"]
+    )
+    
+    if selected_comparison:
+        fig_comparison = go.Figure()
+        
+        for asset_name in selected_comparison:
+            ticker = all_asset[asset_name]
+            if ticker in data and not data[ticker].empty:
+                prices = data[ticker]['Close']
+                normalized = (prices / prices.iloc[0]) * 100
+                fig_comparison.add_trace(
+                    go.Scatter(
+                        x=normalized.index,
+                        y=normalized,
+                        name=asset_name,
+                        mode='lines'
+                    )
+                )
+        
+        fig_comparison.update_layout(
+            template="plotly_white",
+            hovermode="x unified",
+            yaxis_title="Base 100",
+            xaxis_title="Date",
+            height=500
+        )
+        
+        st.plotly_chart(fig_comparison, use_container_width=True)
+    st.divider()
+    choice_metric=st.selectbox(label="Choose your comparaison :",options=["Performance Heatmap","Cross-Asset Correlation Matrix","Sector Performance Comparison","Volatility Ranking"])
+
+    if choice_metric=="Performance Heatmap":
+
+        st.subheader("Performance Heatmap")
+        st.caption("Returns across multiple timeframes - darker green = better performance")
+        
+        periods = {
+            "1D": 1,
+            "1W": 5,
+            "1M": 21,
+            "3M": 63,
+            "YTD": None  # Will calculate from year start
+        }
+        
+        selected_perf = st.multiselect(
+        "Select assets to compare",
+        options=list(all_asset.keys()),
+        default=["Crude Oil WTI", "Gold", "Copper", "Natural Gas Henry Hub"],
+        key="Perofrmance heatmap"
+        )   
+        performance_data = []
+        
+        for asset_name in selected_perf:    
+            ticker=all_asset[asset_name]
+            if ticker in data and not data[ticker].empty:
+                asset_perf = {"Asset": asset_name}
+                prices = data[ticker]['Close']
+                
+                for period_name, days_back in periods.items():
+                    if period_name == "YTD":
+                        # Calculate from start of year
+                        year_start = datetime(today.year, 1, 1)
+                        ytd_prices = prices[prices.index.tz_localize(None) >= year_start]
+                        if len(ytd_prices) > 1:
+                            perf = ((ytd_prices.iloc[-1] / ytd_prices.iloc[0]) - 1) * 100
+                        else:
+                            perf = 0
+                    else:
+                        if len(prices) > days_back:
+                            perf = ((prices.iloc[-1] / prices.iloc[-days_back]) - 1) * 100
+                        else:
+                            perf = 0
+                    
+                    asset_perf[period_name] = round(perf, 2)
+                
+                performance_data.append(asset_perf)
+        
+        if performance_data:
+            df_perf = pd.DataFrame(performance_data)
+            df_perf = df_perf.set_index("Asset")
+            
+            # Create heatmap
+            fig_heatmap = px.imshow(
+                df_perf,
+                text_auto=".1f",
+                aspect="auto",
+                color_continuous_scale='RdYlGn',
+                color_continuous_midpoint=0,
+                labels=dict(color="Return (%)"),
+                zmin=-10, zmax=10
+            )
+            
+            fig_heatmap.update_layout(
+                template="plotly_white",
+                height=400,
+                xaxis_title="Period",
+                yaxis_title="Commodity"
+            )
+            
+            st.plotly_chart(fig_heatmap, use_container_width=True)
+        
+        # === 2. TOP MOVERS ===
+        st.divider()
+        col_gain, col_loss = st.columns(2)
+        
+        # Calculate 1D performance for ranking
+        daily_movers = []
+        for asset_name, ticker in all_asset.items():
+            if ticker in data and len(data[ticker]) >= 2:
+                last_price = data[ticker]['Close'].iloc[-1]
+                prev_price = data[ticker]['Close'].iloc[-2]
+                daily_change = ((last_price / prev_price) - 1) * 100
+                daily_movers.append({
+                    "Asset": asset_name,
+                    "Change": daily_change,
+                    "Price": last_price
+                })
+        
+        df_movers = pd.DataFrame(daily_movers).sort_values("Change", ascending=False)
+        
+        with col_gain:
+            st.markdown("Top Gainers (24h)")
+            top_gainers = df_movers.head(4)
+            for _, row in top_gainers.iterrows():
+                st.metric(
+                    label=row['Asset'],
+                    value=f"${row['Price']:.2f}",
+                    delta=f"{row['Change']:.2f}%"
+                )
+        
+        with col_loss:
+            st.markdown("Top Losers (24h)")
+            top_losers = df_movers.tail(4).sort_values("Change")
+            for _, row in top_losers.iterrows():
+                st.metric(
+                    label=row['Asset'],
+                    value=f"${row['Price']:.2f}",
+                    delta=f"{row['Change']:.2f}%"
+                )
+    
+    if choice_metric=="Cross-Asset Correlation Matrix":
+     
+        st.subheader("Cross-Asset Correlation Matrix")
+        st.caption("How different commodities move together (based on daily returns)")
+        
+        selected_cross_asset = st.multiselect(
+        "Select assets to compare",
+        options=list(all_asset.keys()),
+        default=["Crude Oil WTI", "Gold", "Copper", "Natural Gas Henry Hub"],
+        key="cross asset"
+        ) 
+       
+        if len(selected_cross_asset) > 1:
+            df_returns=pd.DataFrame()
+            for x in selected_cross_asset:
+                df_returns[x]=returns_data[x]
+            corr_matrix = df_returns.corr()
+            
+            fig_corr = px.imshow(
+                corr_matrix,
+                text_auto=".2f",
+                aspect="auto",
+                color_continuous_scale='RdBu_r',
+                labels=dict(color="Correlation"),
+                zmin=-1, zmax=1
+            )
+            
+            fig_corr.update_layout(
+                template="plotly_white",
+                height=600,
+                margin=dict(l=20, r=20, t=40, b=20)
+            )
+            
+            st.plotly_chart(fig_corr, use_container_width=True)
+            
+               
+    if choice_metric=="Sector Performance Comparison":
+
+        st.subheader("Sector Performance Comparison")
+        st.caption("Compare average performance by commodity sector")
+        
+        # Group assets by sector
+        sectors = {
+            "Oil": ["Crude Oil WTI", "Brent Crude"],
+            "Gaz":["Natural Gas Henry Hub","European Natural Gas (TTF)","UK Natural Gas"],
+            "Electricity":["PJM Electricity","California Electricity","German Power Baseload"],
+            "Precious Metals": ["Gold", "Silver", "Platinum"],
+            "Industrial Metals": ["Copper", "Aluminum", "Zinc","Steel (HRC)","Tin"]
+        }
+    
+        
+        sector_performance = []
+        for sector_name, assets in sectors.items():
+            sector_returns = []
+            for asset in assets:
+                if asset in returns_data:
+                    total_return = ((1 + returns_data[asset]).prod() - 1) * 100
+                    sector_returns.append(total_return)
+            
+            if sector_returns:
+                avg_return = np.mean(sector_returns)
+                sector_performance.append({
+                    "Sector": sector_name,
+                    "Avg Return (%)": round(avg_return, 2)
+                })
+        
+        if sector_performance:
+            df_sectors = pd.DataFrame(sector_performance)
+            
+            fig_sectors = px.bar(
+                df_sectors,
+                x="Sector",
+                y="Avg Return (%)",
+                color="Avg Return (%)",
+                color_continuous_scale='RdYlGn',
+                color_continuous_midpoint=0,
+                text="Avg Return (%)"
+            )
+            
+            fig_sectors.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig_sectors.update_layout(
+                template="plotly_white",
+                height=400,
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig_sectors, use_container_width=True)
+        
+        
+    if choice_metric=="Volatility Ranking":
+
+        st.subheader("Volatility Ranking")
+        st.caption("Which commodities are most volatile? (30-day annualized volatility)")
+        
+        selected_comp_vol= st.multiselect(
+        "Select assets to compare",
+        options=list(all_asset.keys()),
+        default=["Crude Oil WTI", "Gold", "Copper", "Natural Gas Henry Hub"],
+        key="commo_selec_vol"
+    )
+        volatility_data = []
+        for asset_name in selected_comp_vol:
+            ticker=all_asset[asset_name]
+            if ticker in data and not data[ticker].empty:
+                vol = volatility(data[ticker])
+                volatility_data.append({
+                    "Asset": asset_name,
+                    "Volatility (%)": round(vol, 2)
+                })
+        
+        if volatility_data:
+            df_vol = pd.DataFrame(volatility_data).sort_values("Volatility (%)", ascending=False)
+            
+            fig_vol = px.bar(
+                df_vol,
+                x="Volatility (%)",
+                y="Asset",
+                orientation='h',
+                color="Volatility (%)",
+                color_continuous_scale='Reds'
+            )
+            
+            fig_vol.update_layout(
+                template="plotly_white",
+                height=500,
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig_vol, use_container_width=True)
 
 def aff_energy():
     st.header("Energy Sector Analysis")
@@ -812,14 +1129,16 @@ def aff_live():
 
 
 def affichage_commo():
-    general_aff,energy,metal,agri,livestock=st.tabs(["General","Energy","Metals","Agriculture","Livestock"])
+    general_aff,energy,metal=st.tabs(["General","Energy","Metals"])
     with general_aff:
         aff_general()
     with energy:
         aff_energy()
     with metal:
         aff_metal()
+    """
     with agri:
         aff_agri()
     with livestock:
         aff_live()
+    """
