@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 
-from app.metrics import get_returns,max_drawdown,sharpe_ratio,sortino_ratio,calmar_ratio,annual_return,volatility
+from app.metrics_general import get_returns,max_drawdown,sharpe_ratio,sortino_ratio,calmar_ratio,annual_return,volatility
 @st.cache_data(ttl=3600)  # Garde les données en cache pendant 1 heure
 def best_worst_equities_index(list_ticker: list, start: str, end: str) -> dict:
     if not list_ticker:

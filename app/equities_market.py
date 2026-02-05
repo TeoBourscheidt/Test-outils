@@ -8,11 +8,11 @@ from scipy.stats import gaussian_kde
 from scipy.stats import norm
 import plotly.express as px
 
-from app.list_asset import link_index_ticker, global_equities
-from app.comp_equities import best_worst_equities_index
-from app.scrap_equities import get_index
-from app.data import get_last_data,validate_ticker,calculate_performance
-from app.metrics import get_returns,max_drawdown,sharpe_ratio,sortino_ratio,calmar_ratio,annual_return,volatility,rolling_volatility,var,cvar,win_rate,best_worst_days,skewness,kurtosis
+from data.list_asset import link_index_ticker, global_equities
+from app.search_equities_index import best_worst_equities_index
+from data.scrap_equities import get_index
+from data.data import get_last_data,validate_ticker,calculate_performance
+from app.metrics_general import get_returns,max_drawdown,sharpe_ratio,sortino_ratio,calmar_ratio,annual_return,volatility,rolling_volatility,var,cvar,win_rate,best_worst_days,skewness,kurtosis
 
 
 
