@@ -6,6 +6,7 @@ import yfinance as yf
 from app.equities_market import affichage_stock_index_market
 from app.commodites_market import affichage_commo
 from quizz.quizz import initialize_session_state,display_quiz
+from quizz.brain_teaser import initialize_brainteaser_session,display_brainteaser_quiz
 from quizz.concept import initialize_concepts_session_state,display_concepts_quiz
 
 page= st.sidebar.selectbox(
@@ -23,4 +24,3 @@ if page=="Quizz metrics":
 if page=="Quizz concept":
     initialize_concepts_session_state()
     display_concepts_quiz()
-
