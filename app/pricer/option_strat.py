@@ -447,9 +447,9 @@ def run():
     # ══════════════════════════════════════════════
     #  ONGLETS
     # ══════════════════════════════════════════════
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab6 = st.tabs([
         "📈 Payoff", "🧮 Greeks", "🌊 Greeks vs Vol",
-        "⏳ Time Decay", "🌡 Heatmap P&L", "📋 Détail Jambes",
+        "⏳ Time Decay", "📋 Détail Jambes"
     ])
 
     # ── TAB 1 — PAYOFF ──────────────────────────────────────────────────────────
@@ -595,39 +595,7 @@ def run():
                         margin=dict(l=50, r=20, t=55, b=45))
         st.plotly_chart(fig4, use_container_width=True)
 
-    # ── TAB 5 — HEATMAP ─────────────────────────────────────────────────────────
-    with tab5:
-        st.info("**Heatmap Spot × Volatilité** — P&L pour chaque combinaison de prix et de vol implicite.")
-        s_vals = np.linspace(S_min, S_max, 30)
-        v_vals = np.linspace(0.05, 0.80, 20)
-        hmap   = np.zeros((len(v_vals), len(s_vals)))
-        for vi, vol_sc in enumerate(v_vals):
-            for si, S_sc in enumerate(s_vals):
-                hmap[vi, si] = sum(
-                    l["position_sign"] * l["quantity"] * (
-                        bs_price(S_sc, l["strike"], l["maturity"], r_rate, vol_sc, l["type"], q)
-                        - l["premium"]
-                    ) for l in legs_processed
-                )
-        abs_max = max(float(np.max(np.abs(hmap))), 1e-9)
-        fig5 = go.Figure(go.Heatmap(
-            z=hmap,
-            x=s_vals,                             # ← numérique : add_vline fonctionne
-            y=[f"{v*100:.0f}%" for v in v_vals],
-            colorscale=[[0,"#7f1d1d"],[0.35,"#ef4444"],[0.5,"#e2e8f0"],[0.65,"#22c55e"],[1,"#14532d"]],
-            zmid=0, zmin=-abs_max, zmax=abs_max,
-            colorbar=dict(title="P&L", len=0.8),
-            hovertemplate="S=%{x:.2f}<br>Vol=%{y}<br>P&L=%{z:.4f}<extra></extra>",
-        ))
-        fig5.add_vline(x=float(spot), line=dict(width=1.5, dash="dash"),
-                    annotation_text="Spot", annotation_font_size=10)
-        fig5.update_layout(
-            title="Heatmap P&L — Spot × Volatilité Implicite",
-            xaxis_title="Prix sous-jacent (S)", yaxis_title="Vol implicite",
-            height=460, margin=dict(l=50, r=20, t=55, b=45))
-        st.plotly_chart(fig5, use_container_width=True)
-
-    # ── TAB 6 — DÉTAIL JAMBES ───────────────────────────────────────────────────
+   
     with tab6:
         rows = []
         for i, l in enumerate(legs_processed):
