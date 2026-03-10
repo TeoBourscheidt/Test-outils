@@ -12,7 +12,7 @@ from data.list_asset import link_index_ticker, global_equities
 from data.search_equities_index import best_worst_equities_index
 from data.scrap_equities import get_index
 from data.data import get_last_data,validate_ticker,calculate_performance
-from app.metrics_general import get_returns,max_drawdown,sharpe_ratio,sortino_ratio,calmar_ratio,annual_return,volatility,rolling_volatility,var,cvar,win_rate,best_worst_days,skewness,kurtosis
+from app.market.metrics_general import get_returns,max_drawdown,sharpe_ratio,sortino_ratio,calmar_ratio,annual_return,volatility,rolling_volatility,var,cvar,win_rate,best_worst_days,skewness,kurtosis
 
 
 

@@ -9,10 +9,10 @@ from scipy.stats import norm
 import plotly.express as px
 
 from data.download_report_metal import telecharger_rapport_lme,traiter_rapport_cotr,get_full_cme_data_direct,colonnes_importantes_cme
-from app.metrics_metal import calc_speculative_sentiment,calc_hedging_pressure,calc_market_conviction,metric_speculative_net_pos,metric_hedging_pressure,metric_crowding_score_improved,metric_commercial_spec_divergence,metric_market_conviction,metric_spreading_intensity
+from app.market.metrics_metal import calc_speculative_sentiment,calc_hedging_pressure,calc_market_conviction,metric_speculative_net_pos,metric_hedging_pressure,metric_crowding_score_improved,metric_commercial_spec_divergence,metric_market_conviction,metric_spreading_intensity
 from data.list_asset import commodities_dict,energy_tickers,fx_tickers,metal_tickers
 from data.data import get_last_data
-from app.metrics_general import rolling_volatility,volatility,get_returns,rolling_corr,cor,max_drawdown
+from app.market.metrics_general import rolling_volatility,volatility,get_returns,rolling_corr,cor,max_drawdown
 
 def aff_general():
     st.header("Commodities Market Overview")
