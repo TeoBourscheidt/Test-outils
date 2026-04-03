@@ -1,7 +1,5 @@
 import numpy as np
-import yfinance as yf
 import pandas as pd
-from datetime import datetime, timedelta
 # ==================== METRIQUES ====================
 
 def get_returns(data: pd.DataFrame) -> pd.Series:

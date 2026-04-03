@@ -4,21 +4,22 @@ metal_tickers = {
     "Silver": "SI=F",
     "Platinum": "PL=F",
     "Palladium": "PA=F",
-    
+
     # --- INDUSTRIELS DE BASE (Base Metals) ---
     "Copper": "HG=F",        # Baromètre économique
     "Aluminum": "ALI=F",
     "Steel (HRC)": "HRC=F",  # Plus liquide que STW
+    "Steel": "HRC=F",        # Alias pour compatibilité UI
     "Iron Ore": "TIO=F",     # Proxy future COMEX pour fer
-    "Zinc": "ZN=F",
+    "Zinc": "ZNC=F",         # Zinc COMEX (ZNC=F, pas ZN=F qui est US Treasury 10Y)
     "Lead": "LL=F",
-    "Tin": "SN=F",            # Ticker futures standard pour l’étain
-    
+    "Tin": "SN=F",
+
     # --- BATTERY & TECH METALS (Transition Énergétique) ---
     "Nickel": "NI=F",
-    "Lithium": "LIT=F",       # Futures proxy ou tracker si disponible
+    "Lithium": "LTHM",       # ETF Lithium Americas (LIT=F n’est pas un future)
     "Cobalt": "COB=F",
-    "Magnesium": "MAG=F",     # Proxy futures ou ETF si disponible
+    "Magnesium": "MAG=F",
 }
 
 fx_tickers = {
@@ -146,30 +147,30 @@ link_index_ticker = {
 
     # 🇪🇺 Europe
     "Euro Stoxx 50": "^STOXX50E",
-    "DAX 40 (Allemagne)": "^GDAXI",
-    "FTSE MIB (Italie)" : "FTSEMIB.MI",
+    "DAX 40 (Germany)": "^GDAXI",
+    "FTSE MIB (Italy)": "FTSEMIB.MI",
     "CAC 40 (France)": "^FCHI",
-    "FTSE 100 (Royaume-Uni)": "^FTSE",
-    "SMI (Suisse)": "^SSMI",
+    "FTSE 100 (UK)": "^FTSE",
+    "SMI (Switzerland)": "^SSMI",
 
     # 🌏 Asie
-    "Nikkei 225 (Japon)": "^N225",
-    "TOPIX (Japon)": "^TOPX",
-    "Shanghai Composite (Chine)": "000001.SS",
-    "BSE Sensex (Inde)": "^BSESN",
-    "KOSPI (Corée)": "^KS11",
+    "Nikkei 225 (Japan)": "^N225",
+    "TOPIX (Japan)": "^TOPX",
+    "Shanghai Composite (China)": "000001.SS",
+    "BSE Sensex (India)": "^BSESN",
+    "KOSPI (Korea)": "^KS11",
 
     # 🌎 Amérique Latine
-    "IBOVESPA (Brésil)": "^BVSP",
-    "IPC (Mexique)": "^MXX",
-    "MERVAL (Argentine)": "^MERV",
-    "IPSA (Chili)": "^IPSA",
+    "IBOVESPA (Brazil)": "^BVSP",
+    "IPC (Mexico)": "^MXX",
+    "MERVAL (Argentina)": "^MERV",
+    "IPSA (Chile)": "^IPSA",
 
     # 🌍 Moyen-Orient / Afrique
-    "Tadawul All Share (Arabie Saoudite)": "^TASI",
-    "DFM General Index (ÉAU)": "^DFMGI",
-    "FTSE/JSE Top 40 (Afrique du Sud)": "^JTOPI",
-    "TA-125 (Israël)": "^TA125.TA",
+    "Tadawul All Share (Saudi Arabia)": "^TASI",
+    "DFM General Index (UAE)": "^DFMGI",
+    "FTSE/JSE Top 40 (South Africa)": "^JTOPI",
+    "TA-125 (Israel)": "^TA125.TA",
 
     # 🌐 Indices mondiaux (ETF proxy)
     "MSCI World": "URTH",

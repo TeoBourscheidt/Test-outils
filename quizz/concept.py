@@ -1,6 +1,5 @@
 import streamlit as st
 import random
-from datetime import datetime
 
 # Dictionary of all financial concepts with their definitions and explanations
 CONCEPTS_LIBRARY = {

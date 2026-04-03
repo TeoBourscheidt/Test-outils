@@ -1,33 +1,4 @@
 
-def calc_speculative_sentiment(long, short, oi):
-    """
-    Calcule la position nette des fonds en % de l'Open Interest.
-    CME: long=M_Money_Long, short=M_Money_Short
-    LME: long=Funds_Long, short=Funds_Short
-    """
-    if oi == 0 or oi is None: return 0
-    net_pos = long - short
-    return (net_pos / oi) * 100
-
-def calc_hedging_pressure(comm_long, comm_short):
-    """
-    Ratio Long/Short des industriels. 
-    Un ratio qui monte = les industriels achètent (peur d'une hausse des prix).
-    Un ratio qui baisse = les miniers vendent massivement (couverture).
-    """
-    if comm_short == 0: return 0
-    return comm_long / comm_short
-
-def calc_market_conviction(current_oi, previous_oi):
-    """
-    Si l'OI augmente avec le prix : Nouvelle argent qui rentre (tendance forte).
-    Si l'OI baisse avec le prix : Sortie de positions (tendance faible).
-    """
-    if previous_oi == 0: return 0
-    return ((current_oi - previous_oi) / previous_oi) * 100
-
-##
-
 def metric_speculative_net_pos(long, short, open_interest):
     """
     CME: M_Money_Long, M_Money_Short | LME: Funds_Long, Funds_Short
@@ -76,12 +47,11 @@ def metric_market_conviction(current_oi, previous_oi):
 
 def metric_commercial_spec_divergence(comm_net_pos, spec_net_pos):
     """
-    Mesure la divergence entre industriels et spéculateurs
-    
-    Si les deux sont du même côté : Consensus fort
-    Si opposés : Bataille → souvent les commerciaux ont raison à long terme
-    
-    Retourne : 'aligned' | 'divergence_moderate' | 'divergence_strong'
+    Mesure la divergence entre industriels et spéculateurs.
+
+    Si les deux sont du même côté : Consensus fort → retourne 0.
+    Si opposés : Bataille → retourne l'écart absolu (plus c'est élevé, plus c'est significatif).
+    Les commerciaux ont généralement raison à long terme.
     """
     if (comm_net_pos > 0 and spec_net_pos > 0) or (comm_net_pos < 0 and spec_net_pos < 0):
         return 0  # Alignés

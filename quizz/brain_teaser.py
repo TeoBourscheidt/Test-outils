@@ -1,6 +1,5 @@
 import streamlit as st
 import random
-from datetime import datetime
 
 # Dictionary of 50+ finance brainteasers with answers and explanations
 BRAINTEASER_LIBRARY= {
@@ -24,8 +23,8 @@ BRAINTEASER_LIBRARY= {
     
     "BT003": {
         "question": "Vous avez 100 pièces : 1 fausse (toujours face) et 99 normales. Vous en prenez une au hasard et obtenez 3 fois face. Quelle est la probabilité que ce soit la fausse ?",
-        "answer": "Environ 88.9%",
-        "explanation": "Théorème de Bayes : P(Fausse|3 faces) = P(3 faces|Fausse) × P(Fausse) / P(3 faces). P(3 faces|Fausse) = 1, P(Fausse) = 1/100, P(3 faces) = (1/100)×1 + (99/100)×(1/8) = 0.13375. Donc : 1 × 0.01 / 0.13375 ≈ 0.0748 ou environ 88.9% après calcul correct.",
+        "answer": "Environ 7.48%",
+        "explanation": "Théorème de Bayes : P(Fausse|3 faces) = P(3 faces|Fausse) × P(Fausse) / P(3 faces). P(3 faces|Fausse) = 1, P(Fausse) = 1/100, P(3 faces) = (1/100)×1 + (99/100)×(1/8) = 0.01 + 0.12375 = 0.13375. Donc : 1 × 0.01 / 0.13375 ≈ 0.0748 soit environ 7.48%. La probabilité reste faible car les pièces normales peuvent tout à fait donner 3 faces de suite.",
         "category": "Probabilités",
         "difficulty": "Moyen",
         "hints": ["Bayes", "P(A|B) = P(B|A) × P(A) / P(B)"]
@@ -240,8 +239,8 @@ BRAINTEASER_LIBRARY= {
     
     "BT027": {
         "question": "Une entreprise a 100M€ de dette à 5% et 100M€ d'equity à 12% requis. Taux d'impôt 30%. Quel est le WACC ?",
-        "answer": "8.05%",
-        "explanation": "WACC = (E/V)×r_e + (D/V)×r_d×(1-t). E=100, D=100, V=200. WACC = (100/200)×0.12 + (100/200)×0.05×(1-0.3) = 0.5×0.12 + 0.5×0.05×0.7 = 0.06 + 0.0175 = 0.0775 ou 7.75% (avec bouclier fiscal correct = 8.05%).",
+        "answer": "7.75%",
+        "explanation": "WACC = (E/V)×r_e + (D/V)×r_d×(1-t). E=100, D=100, V=200. WACC = (100/200)×0.12 + (100/200)×0.05×(1-0.3) = 0.5×0.12 + 0.5×0.035 = 0.06 + 0.0175 = 0.0775 soit 7.75%. Le bouclier fiscal s'applique uniquement au coût de la dette (5% × 0.7 = 3.5%).",
         "category": "Corporate Finance",
         "difficulty": "Moyen",
         "hints": ["Formule WACC", "N'oubliez pas le bouclier fiscal sur la dette"]

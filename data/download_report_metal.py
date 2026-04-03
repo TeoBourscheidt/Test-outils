@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import io
 import zipfile
 import os
-import cot_reports as cot
 import glob
 #%%
 ############################
@@ -251,7 +250,8 @@ def get_full_cme_data_direct(commodity_name):
         print(f"💡 Commodités disponibles : {', '.join(mapping.keys())}")
         return None
 
-    url = "https://www.cftc.gov/files/dea/history/fut_disagg_txt_2025.zip"
+    current_year = datetime.now().year
+    url = f"https://www.cftc.gov/files/dea/history/fut_disagg_txt_{current_year}.zip"
     
     try:
         r = requests.get(url, timeout=15)

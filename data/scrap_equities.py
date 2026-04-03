@@ -228,7 +228,7 @@ def get_index(index: str) -> list:
     index_map = {
         "S&P 500": get_sp500_tickers,
         "Dow Jones Industrial": get_dow30_tickers,
-        "   NASDAQ Composite": get_nasdaq100_tickers,
+        "NASDAQ Composite": get_nasdaq100_tickers,
         "CAC 40": get_cac40_tickers,
         "DAX 40": get_dax40_tickers,
         "FTSE 100": get_ftse100_tickers,

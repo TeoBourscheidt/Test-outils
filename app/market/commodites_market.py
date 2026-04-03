@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import yfinance as yf
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
 from scipy.stats import gaussian_kde
@@ -9,8 +8,8 @@ from scipy.stats import norm
 import plotly.express as px
 
 from data.download_report_metal import telecharger_rapport_lme,traiter_rapport_cotr,get_full_cme_data_direct,colonnes_importantes_cme
-from app.market.metrics_metal import calc_speculative_sentiment,calc_hedging_pressure,calc_market_conviction,metric_speculative_net_pos,metric_hedging_pressure,metric_crowding_score_improved,metric_commercial_spec_divergence,metric_market_conviction,metric_spreading_intensity
-from data.list_asset import commodities_dict,energy_tickers,fx_tickers,metal_tickers
+from app.market.metrics_metal import metric_speculative_net_pos, metric_hedging_pressure, metric_commercial_spec_divergence, metric_market_conviction, metric_spreading_intensity
+from data.list_asset import commodities_dict, energy_tickers, metal_tickers
 from data.data import get_last_data
 from app.market.metrics_general import rolling_volatility,volatility,get_returns,rolling_corr,cor,max_drawdown
 
@@ -891,7 +890,7 @@ def aff_metal():
                 st.caption("Analyze the relationship between two precious metals")
                 col1, col2 = st.columns(2)
                 metal1 = col1.selectbox(label="Precious metal 1", options=selected_metals, index=0)
-                metal2 = col2.selectbox(label="Precious metal 2", options=selected_metals, index=1)
+                metal2 = col2.selectbox(label="Precious metal 2", options=selected_metals, index=min(1, len(selected_metals) - 1))
                 
                 window_size = st.slider(label="Rolling window (days)", value=30, max_value=90, min_value=5)
                 rolling_correlation = rolling_corr(data[metal_tickers[metal1]], data[metal_tickers[metal2]], window=window_size)
@@ -1010,7 +1009,7 @@ def aff_metal():
                 available_cme_metal_name=["gold","silver","copper","platinum","palladium", "steel","steel_euro"]
                 if metal_category == "Industrial" or metal_category=="Battery & tech metals":
 
-                    st.text("The LME publishes a report every Friday summarizing the positions of all types of buyers and sellers who use the LME.")
+                    st.text("The CME publishes a report every Friday summarizing the positions of all types of buyers and sellers (Commitment of Traders).")
                     today = datetime.now()
                     days_ago = (today.weekday() - 4) % 7
                     if days_ago == 0:

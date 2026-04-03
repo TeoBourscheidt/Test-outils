@@ -1,6 +1,5 @@
 import streamlit as st
 import random
-from datetime import datetime
 
 # Dictionary of all metrics with their definitions and interpretations
 METRICS_LIBRARY = {
@@ -53,7 +52,7 @@ METRICS_LIBRARY = {
         "good_range": "< 20%"
     },
     "Volatility": {
-        "definition": "Standard deviation of returns ($\sigma$), typically annualized. Measures the dispersion of returns around the mean.",
+        "definition": r"Standard deviation of returns ($\sigma$), typically annualized. Measures the dispersion of returns around the mean.",
         "interpretation": "Lower = more stable. High = higher uncertainty. Typically 15-25% for equities.",
         "category": "Risk Metrics",
         "good_range": "10-20%"

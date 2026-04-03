@@ -10,12 +10,6 @@ import warnings
 
 def run():
     warnings.filterwarnings("ignore")
-    st.set_page_config(
-        page_title="Options Strategy Lab",
-        page_icon="◈",
-        layout="wide",
-        initial_sidebar_state="collapsed",
-    )
 
     st.markdown("""
     <style>
